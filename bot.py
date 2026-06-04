@@ -374,7 +374,7 @@ def main():
             ABOUT:         [MessageHandler(TEXT, get_about)],
             CONFIRM:       [MessageHandler(TEXT, confirm)],
         },
-        fallbacks=[CommandHandler("cancel", cancel)],
+        fallbacks=[CommandHandler("cancel", cancel), CommandHandler("start", start)],
     )
     app.add_handler(conv)
     print("Bot ishlamoqda...")
