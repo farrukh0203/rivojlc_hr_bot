@@ -1,15 +1,9 @@
 import logging, os
 from datetime import datetime
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
-from telegram.ext import (
-    Application, CommandHandler, MessageHandler,
-    ConversationHandler, filters, ContextTypes,
-)
+from telegram.ext import Application, CommandHandler, MessageHandler, ConversationHandler, filters
 
-logging.basicConfig(
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    level=logging.INFO
-)
+logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s", level=logging.INFO)
 
 MENU, NAME, PHONE, PHOTO, CONFIRM = range(5)
 
@@ -22,8 +16,8 @@ MENU_KB = [["📋 Hujjat topshirish"], ["ℹ️ Biz haqimizda"]]
 async def start(update, context):
     await update.message.reply_text(
         "🇺🇿 Assalomu alaykum!\n\n"
-        "Kompaniyamizga yangi ishga kirmoqchi bo'lgan "
-        "xodimlarni rezyumelarini shu bot orqali qabul qilamiz.",
+        "Kompaniyamizga ishga kirmoqchi bolgan xodimlarni\n"
+        "rezyumelarini shu bot orqali qabul qilamiz.",
         reply_markup=ReplyKeyboardMarkup(MENU_KB, resize_keyboard=True),
     )
     return MENU
@@ -39,7 +33,7 @@ async def menu_handler(update, context):
         return NAME
     elif "haqimizda" in text:
         await update.message.reply_text(
-            "🏢 Biz haqimizda ma'lumotni bu yerga yozing.",
+            "Biz haqimizda malumotni bu yerga yozing.",
             reply_markup=ReplyKeyboardMarkup(MENU_KB, resize_keyboard=True),
         )
         return MENU
@@ -70,16 +64,11 @@ async def get_photo(update, context):
     name  = context.user_data["name"]
     phone = context.user_data["phone"]
     photo = context.user_data["photo_id"]
-    kb = [["Ha, to'g'ri ✅", "Qayta kiritaman ❌"]]
+    kb = [["Ha, togri", "Qayta kiritaman"]]
 
     await update.message.reply_photo(
         photo=photo,
-        caption=(
-            f"Ma'lumotlaringiz:\n\n"
-            f"Ism: {name}\n"
-            f"Telefon: {phone}\n\n"
-            "Shu ma'lumotlar to'g'rimi?"
-        ),
+        caption="Malumotlaringiz:\n\nIsm: " + name + "\nTelefon: " + phone + "\n\nShu malumotlar toghrimi?",
         reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True, resize_keyboard=True),
     )
     return CONFIRM
@@ -90,20 +79,16 @@ async def confirm(update, context):
         name  = context.user_data["name"]
         phone = context.user_data["phone"]
         photo = context.user_data["photo_id"]
-        caption = (
-            f"Yangi ariza\n\n"
-            f"Ism: {name}\n"
-            f"Tel: {phone}\n"
-            f"Sana: {datetime.now().strftime('%d.%m.%Y %H:%M')}"
-        )
+        sana  = datetime.now().strftime("%d.%m.%Y %H:%M")
+        caption = "Yangi ariza\n\nIsm: " + name + "\nTel: " + phone + "\nSana: " + sana
         await context.bot.send_photo(chat_id=GROUP_ID, photo=photo, caption=caption)
         await update.message.reply_text(
-            "Yuborildi! Tez orada bog'lanamiz.",
+            "Yuborildi! Tez orada boglanamiz.",
             reply_markup=ReplyKeyboardMarkup(MENU_KB, resize_keyboard=True),
         )
     else:
         await update.message.reply_text(
-            "Qayta boshlash uchun /start bosing.",
+            "Qayta boshlash: /start",
             reply_markup=ReplyKeyboardMarkup(MENU_KB, resize_keyboard=True),
         )
     context.user_data.clear()
@@ -120,9 +105,22 @@ async def cancel(update, context):
 
 def main():
     app = Application.builder().token(TOKEN).build()
+    TEXT = filters.TEXT & ~filters.COMMAND
     conv = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
         states={
-            MENU:    [MessageHandler(filters.TEXT & ~filters.COMMAND, menu_handler)],
-            NAME:    [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
-            PHONE:   [MessageHandler(filters.TEXT & ~filters.COMMAND
+            MENU:    [MessageHandler(TEXT, menu_handler)],
+            NAME:    [MessageHandler(TEXT, get_name)],
+            PHONE:   [MessageHandler(TEXT, get_phone)],
+            PHOTO:   [MessageHandler(filters.PHOTO | filters.Document.IMAGE, get_photo)],
+            CONFIRM: [MessageHandler(TEXT, confirm)],
+        },
+        fallbacks=[CommandHandler("cancel", cancel)],
+    )
+    app.add_handler(conv)
+    print("Bot ishlamoqda...")
+    app.run_polling(allowed_updates=Update.ALL_TYPES)
+
+
+if __name__ == "__main__":
+    main()
